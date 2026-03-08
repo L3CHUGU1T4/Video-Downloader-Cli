@@ -1,0 +1,55 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  # ── 1. Publica en PyPI ────────────────────────────────────────────────────
+  pypi:
+    name: Publish to PyPI
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write   # OIDC trusted publishing (sin contraseña)
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build wheel + sdist
+        run: |
+          pip install build
+          python -m build
+
+      - name: Publish
+        uses: pypa/gh-action-pypi-publish@release/v1
+
+  # ── 2. Crea el GitHub Release con el tarball ──────────────────────────────
+  release:
+    name: GitHub Release
+    needs: pypi
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create tarball
+        run: |
+          git archive --format=tar.gz \
+            --prefix=ytdl-${GITHUB_REF_NAME#v}/ \
+            HEAD > ytdl-${GITHUB_REF_NAME#v}.tar.gz
+
+      - name: Compute sha256
+        run: sha256sum ytdl-${GITHUB_REF_NAME#v}.tar.gz
+
+      - name: Publish Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: "*.tar.gz"
+          generate_release_notes: true

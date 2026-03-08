@@ -27,6 +27,7 @@ class Ytdl < Formula
 
   def install
     virtualenv_install_with_resources
+    bin.install libexec/"bin/ytdl"
   end
 
   test do
